@@ -3,7 +3,7 @@ use nalgebra as na;
 use na::SMatrix;
 use na::SVector;
 
-/// Warstwa o określonej liczbie neuronów wejściowych i wyjściowych.
+/// Neural network layer.
 pub trait Layer<const NEURONS_IN: usize, const NEURONS_OUT: usize> {
     const PARAMS_CNT: usize;
     const NEURONS_IN: usize = NEURONS_IN;

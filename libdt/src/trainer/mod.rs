@@ -3,6 +3,7 @@ use nalgebra::RowSVector;
 
 use super::network::Network;
 
+/// Neural network trainer.
 pub trait Trainer<N,
               const PARAMS_CNT: usize,
               const NEURONS_IN: usize,

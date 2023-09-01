@@ -8,6 +8,7 @@ use super::common::cost;
 use super::common::apply_step;
 use super::common::choose_step;
 
+/// Simple gradient descent trainer.
 pub struct GDTrainer<N,
                      const PARAMS_CNT: usize,
                      const NEURONS_IN: usize,

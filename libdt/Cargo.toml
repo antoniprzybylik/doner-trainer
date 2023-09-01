@@ -1,0 +1,16 @@
+[package]
+name = "libdt"
+version = "1.0.0"
+edition = "2021"
+authors = ["Antoni Przybylik <antoni.przybylik@wp.pl>"]
+license = "GPL-2.0"
+readme = "README.md"
+description = "Library for training neural networks."
+
+[features]
+macros = ["libdt-macros"]
+
+[dependencies]
+libdt-macros = {version = "1.0.0", path = "../libdt-macros", optional = true }
+
+nalgebra = "0.32.3"

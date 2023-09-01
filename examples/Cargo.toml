@@ -1,0 +1,14 @@
+[package]
+name = "examples"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[dev-dependencies]
+libdt = { version = "1.0.0", path = "../libdt", features = ["macros"] }
+rand = "0.8.5"
+nalgebra = "0.32.3"
+
+[[example]]
+name = "gd_trainer_demo"
+path = "gd_trainer_demo/main.rs"

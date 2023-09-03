@@ -78,17 +78,17 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
         });
     }
 
-    let mut layer_list = proc_macro2::TokenStream::new();
+    let mut layers_string = String::from("[");
     for i in 0..layer_idents.len() {
         let layer_ident = &layer_idents[i];
-        layer_list.extend(quote!{#layer_ident});
+        layers_string += "\"";
+        layers_string += &quote!(#layer_ident).to_string();
+        layers_string += "\"";
         if i < layer_idents.len()-1 {
-            layer_list.extend(quote!{, });
+            layers_string += ", ";
         }
     }
-    let layers_string = String::from("(") +
-                        &layer_list.to_string() +
-                        ")";
+    layers_string += "]";
 
     let mut params_cnt_sum = proc_macro2::TokenStream::new();
     for i in 0..layer_idents.len() {

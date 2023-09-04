@@ -26,3 +26,6 @@ mod common;
 
 mod gd_trainer;
 pub use gd_trainer::*;
+
+mod cg_trainer;
+pub use cg_trainer::*;

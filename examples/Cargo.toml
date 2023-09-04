@@ -12,3 +12,7 @@ nalgebra = "0.32.3"
 [[example]]
 name = "gd_trainer_demo"
 path = "gd_trainer_demo/main.rs"
+
+[[example]]
+name = "cg_trainer_demo"
+path = "cg_trainer_demo/main.rs"

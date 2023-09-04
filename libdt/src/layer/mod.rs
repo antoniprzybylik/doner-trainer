@@ -22,3 +22,6 @@ pub use lin_layer::*;
 
 mod sigma_layer;
 pub use sigma_layer::*;
+
+mod gelu_layer;
+pub use gelu_layer::*;

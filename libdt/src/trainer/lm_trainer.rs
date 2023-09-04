@@ -72,7 +72,7 @@ where
             let m = m.try_inverse();
             let step = match m {
                 Some(m) => -(&m * g.transpose()).transpose(),
-                None => super::common::choose_step::<N,
+                None => return super::common::choose_step::<N,
                     PARAMS_CNT, NEURONS_IN, NEURONS_OUT>(
                         &mut self.p, self.x_values.as_slice(),
                         self.d_values.as_slice(), -g),

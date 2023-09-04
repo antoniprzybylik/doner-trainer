@@ -25,3 +25,6 @@ pub use sigma_layer::*;
 
 mod gelu_layer;
 pub use gelu_layer::*;
+
+mod softmax_layer;
+pub use softmax_layer::*;

@@ -66,7 +66,7 @@ where
     }
 
     fn make_step(&mut self) {
-        let direction = self.grad();
+        let direction = -(self.grad()).clone();
 
         let step = choose_step::<N, PARAMS_CNT,
                                  NEURONS_IN, NEURONS_OUT>

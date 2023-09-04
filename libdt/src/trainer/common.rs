@@ -68,12 +68,11 @@ pub fn choose_step<N,
     (p: &mut [f64],
      x_values: &[SVector<f64, { NEURONS_IN }>],
      d_values: &[SVector<f64, { NEURONS_OUT }>],
-     g: RowSVector<f64, PARAMS_CNT>)
+     direction: RowSVector<f64, PARAMS_CNT>)
     -> RowSVector<f64, PARAMS_CNT>
 where
     N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
 {
-    let step = -g;
     let (mut x1, mut x2, mut x3, mut x4): (f64, f64, f64, f64);
     let (fx1, mut fx3, mut fx4): (f64, f64, f64);
 
@@ -90,7 +89,7 @@ where
     x2 = P0;
     while eval_untouched::<N, PARAMS_CNT,
                            NEURONS_IN, NEURONS_OUT>
-        (p, &(x2*step), x_values, d_values) <= fx1
+        (p, &(x2*direction), x_values, d_values) <= fx1
     {
         x2 = x1 + (x2 - x1)*PHI2;
     }
@@ -99,10 +98,10 @@ where
 	x4 = x1 + (x2 - x1)*RPHI;
 	fx3 = eval_untouched::<N, PARAMS_CNT,
                            NEURONS_IN, NEURONS_OUT>
-        (p, &(x3*step), x_values, d_values);
+        (p, &(x3*direction), x_values, d_values);
 	fx4 = eval_untouched::<N, PARAMS_CNT,
                            NEURONS_IN, NEURONS_OUT>
-        (p, &(x4*step), x_values, d_values);
+        (p, &(x4*direction), x_values, d_values);
 	while (x1 - x2).abs() > MAX_E {
 		if fx3 < fx4 {
 			x2 = x4;
@@ -112,7 +111,7 @@ where
 			x4 = x1 + (x2 - x1)*RPHI;
 			fx3 = eval_untouched::<N, PARAMS_CNT,
                                    NEURONS_IN, NEURONS_OUT>
-                (p, &(x3*step), x_values, d_values);
+                (p, &(x3*direction), x_values, d_values);
 		} else {
 			x1 = x3;
 
@@ -121,9 +120,9 @@ where
 			x4 = x1 + (x2 - x1)*RPHI;
 			fx4 = eval_untouched::<N, PARAMS_CNT,
                                    NEURONS_IN, NEURONS_OUT>
-                (p, &(x4*step), x_values, d_values);
+                (p, &(x4*direction), x_values, d_values);
 		}
 	}
 
-	((x1 + x2) / 2.0) * step
+	((x1 + x2) / 2.0) * direction
 }

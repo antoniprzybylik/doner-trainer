@@ -16,3 +16,7 @@ path = "gd_trainer_demo/main.rs"
 [[example]]
 name = "cg_trainer_demo"
 path = "cg_trainer_demo/main.rs"
+
+[[example]]
+name = "lm_trainer_demo"
+path = "lm_trainer_demo/main.rs"

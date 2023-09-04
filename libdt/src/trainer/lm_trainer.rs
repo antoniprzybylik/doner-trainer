@@ -77,16 +77,21 @@ where
                         &mut self.p, self.x_values.as_slice(),
                         self.d_values.as_slice(), -g),
             };
-
-            if eval_untouched::<
+            
+            let rho = (current_cost - eval_untouched::<
                 N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
                 (&mut self.p, &step,
-                 self.x_values.as_slice(), self.d_values.as_slice())
-                < current_cost {
+                 self.x_values.as_slice(),
+                 self.d_values.as_slice())) /
+                (step * (self.lambda*
+                         SMatrix::from_diagonal(&h.diagonal())*
+                         step.transpose() -
+                         g.transpose())).norm();
 
+            if rho > 0.1f64 {
                 let new_lambda = self.lambda / 9f64;
-                if new_lambda < 1e-12 {
-                    self.lambda = 1e-12;
+                if new_lambda < 1e-7 {
+                    self.lambda = 1e-7;
                 } else {
                     self.lambda = new_lambda;
                 }

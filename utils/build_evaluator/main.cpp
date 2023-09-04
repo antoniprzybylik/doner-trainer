@@ -8,12 +8,15 @@
 enum LayerType {
 	LinLayer,
 	SigmaLayer,
+	GeLULayer,
 };
 
 class LayerSpec {
 private:
 	inline
 	std::string sigma_layer_formula_frag(size_t layer_num) const;
+	inline
+	std::string gelu_layer_formula_frag(size_t layer_num) const;
 	inline
 	std::string lin_layer_formula_frag(size_t layer_num,
 		std::vector<long double> &params, size_t begin_idx) const;
@@ -74,6 +77,10 @@ LayerSpec::LayerSpec(const YAML::Node &node)
 		   std::string("SigmaLayer")) {
 		this->layer_type = SigmaLayer;
 		end_of_ident = 10;
+	} else if (layerspec_str.substr(0, 9) ==
+		   std::string("GeLULayer")) {
+		this->layer_type = GeLULayer;
+		end_of_ident = 10;
 	} else {
 		throw std::invalid_argument(
 			"Bad layer specification.");
@@ -107,6 +114,11 @@ LayerSpec::LayerSpec(const YAML::Node &node)
 			iospec_str.substr(1, iospec_str.size()-2);
 		break;
 
+	case GeLULayer:
+		neurons_out_str = neurons_in_str =
+			iospec_str.substr(1, iospec_str.size()-2);
+		break;
+
 	default:
 		throw std::runtime_error(
 			"Unreachable statement.");
@@ -125,6 +137,9 @@ size_t LayerSpec::params_cnt(void) const
 		       this->neurons_out;
 
 	case SigmaLayer:
+		return 0;
+
+	case GeLULayer:
 		return 0;
 
 	default:
@@ -148,6 +163,21 @@ std::string LayerSpec::sigma_layer_formula_frag(size_t layer_num) const
 	for (size_t i = 0; i < this->neurons_out; i++) {
 		frag += format_s(layer_num, i) +
 			std::string(" = sigma(") +
+		        format_s(layer_num-1, i) +
+			std::string(");\n");
+	}
+
+	return frag;
+}
+
+inline
+std::string LayerSpec::gelu_layer_formula_frag(size_t layer_num) const
+{
+	std::string frag;
+
+	for (size_t i = 0; i < this->neurons_out; i++) {
+		frag += format_s(layer_num, i) +
+			std::string(" = gerror(") +
 		        format_s(layer_num-1, i) +
 			std::string(");\n");
 	}
@@ -196,6 +226,9 @@ std::string LayerSpec::formula_frag(size_t layer_num,
 
 	case SigmaLayer:
 		return sigma_layer_formula_frag(layer_num);
+
+	case GeLULayer:
+		return gelu_layer_formula_frag(layer_num);
 
 	default:
 		throw std::runtime_error(

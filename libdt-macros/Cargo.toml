@@ -4,6 +4,7 @@ version = "1.0.0"
 edition = "2021"
 authors = ["Antoni Przybylik <antoni.przybylik@wp.pl>"]
 license = "GPL-2.0"
+repository = "https://github.com/antoniprzybylik/doner-trainer"
 description = "LibDT's macros."
 
 [lib]

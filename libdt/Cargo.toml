@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Antoni Przybylik <antoni.przybylik@wp.pl>"]
 license = "GPL-2.0"
 readme = "README.md"
+repository = "https://github.com/antoniprzybylik/doner-trainer"
 description = "Library for training neural networks."
 
 [features]

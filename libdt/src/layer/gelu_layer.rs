@@ -6,7 +6,8 @@ use na::SVector;
 use super::Layer;
 
 pub struct GeLULayer<const SIZE: usize> {
-    pub input: SVector<f64, SIZE>,
+    input: SVector<f64, SIZE>,
+    pub signal: SVector<f64, SIZE>,
     chain_element: SMatrix<f64, SIZE, SIZE>,
 }
 
@@ -15,6 +16,7 @@ impl<const SIZE: usize> GeLULayer<SIZE>
     pub fn new() -> Self {
         Self {
             input: na::zero(),
+            signal: na::zero(),
             chain_element: na::zero(),
         }
     }
@@ -63,8 +65,9 @@ impl<const SIZE: usize> Layer<SIZE, SIZE> for GeLULayer<SIZE> {
 
     fn forward(&mut self, p: &[f64], x: SVector<f64, SIZE>) -> SVector<f64, SIZE> {
         self.input = x.clone();
+        self.signal = Self::eval(p, x);
 
-        Self::eval(p, x)
+        self.signal.clone()
     }
 
     fn backward(&mut self, _p: &[f64]) {

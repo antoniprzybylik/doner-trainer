@@ -29,3 +29,6 @@ pub use gd_trainer::*;
 
 mod cg_trainer;
 pub use cg_trainer::*;
+
+mod lm_trainer;
+pub use lm_trainer::*;

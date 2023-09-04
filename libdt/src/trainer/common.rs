@@ -31,7 +31,7 @@ pub fn revert_step<const VEC_LEN: usize>
         }
 }
 
-fn eval_untouched<N,
+pub fn eval_untouched<N,
                   const PARAMS_CNT: usize,
                   const NEURONS_IN: usize,
                   const NEURONS_OUT: usize>

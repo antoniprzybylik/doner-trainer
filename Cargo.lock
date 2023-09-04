@@ -68,6 +68,7 @@ dependencies = [
  "float_eq",
  "libdt-macros",
  "nalgebra",
+ "rand",
 ]
 
 [[package]]

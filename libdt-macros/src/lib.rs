@@ -145,13 +145,13 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
     compute_jacobian.extend(quote!{
         let mut jm: DMatrix<f64> =
             DMatrix::from_element_generic(
-                dim::Dyn(Self::NEURONS_OUT),
-                dim::Dyn(Self::PARAMS_CNT), 0f64);
+                nalgebra::base::dimension::Dyn(Self::NEURONS_OUT),
+                nalgebra::base::dimension::Dyn(Self::PARAMS_CNT), 0f64);
         let m: DMatrix<f64> = {
             let mut m: DMatrix<f64> =
                 DMatrix::from_element_generic(
-                    dim::Dyn(Self::NEURONS_OUT),
-                    dim::Dyn(Self::NEURONS_OUT), 0f64);
+                    nalgebra::base::dimension::Dyn(Self::NEURONS_OUT),
+                    nalgebra::base::dimension::Dyn(Self::NEURONS_OUT), 0f64);
             m.fill_diagonal(1f64);
 
             m

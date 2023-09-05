@@ -143,13 +143,19 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut compute_jacobian = proc_macro2::TokenStream::new();
     compute_jacobian.extend(quote!{
-        let mut jm: SMatrix<f64,
-                            { #last_layer::NEURONS_OUT },
-                            { Self::PARAMS_CNT }> = nalgebra::zero();
-        let m: SMatrix<f64,
-                       { #last_layer::NEURONS_OUT },
-                       { #last_layer::NEURONS_OUT }> =
-            nalgebra::one();
+        let mut jm: DMatrix<f64> =
+            DMatrix::from_element_generic(
+                dim::Dyn(Self::NEURONS_OUT),
+                dim::Dyn(Self::PARAMS_CNT), 0f64);
+        let m: DMatrix<f64> = {
+            let mut m: DMatrix<f64> =
+                DMatrix::from_element_generic(
+                    dim::Dyn(Self::NEURONS_OUT),
+                    dim::Dyn(Self::NEURONS_OUT), 0f64);
+            m.fill_diagonal(1f64);
+
+            m
+        };
         let mut offset: usize = Self::PARAMS_CNT;
     });
     for i in (1..layer_idents.len()).rev() {
@@ -157,7 +163,7 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
         let idx: syn::Index = i.into();
         let prev_idx: syn::Index = (i-1).into();
         compute_jacobian.extend(quote!{
-            let jf = m * self.layers.#idx.chain_end(
+            let jf = &m * self.layers.#idx.chain_end(
                     &self.layers.#prev_idx.signal);
             offset -= #layer_ident::PARAMS_CNT;
             for i in offset..offset+#layer_ident::PARAMS_CNT {
@@ -175,11 +181,12 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     });
 
-    let constructor = quote! {
-        impl Network<{ #params_cnt_sum },
-                     { #first_layer::NEURONS_IN },
-                     { #last_layer::NEURONS_OUT }> for #ident
-        {
+    let network_trait_impl = quote! {
+        impl Network for #ident {
+            const PARAMS_CNT: usize = #params_cnt_sum;
+            const NEURONS_IN: usize = #first_layer::NEURONS_IN;
+            const NEURONS_OUT: usize = #last_layer::NEURONS_OUT;
+
             fn new() -> Self {
                 Self {
                     layers: (#new_list),
@@ -190,23 +197,22 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 #layers_string
             }
 
-            fn eval(p: &[f64],
-                    x: SVector<f64, { #first_layer::NEURONS_IN }>) ->
-                SVector<f64, { #last_layer::NEURONS_OUT }>
+            fn eval(p: &[f64], x: DVector<f64>) ->
+                DVector<f64>
             {
                 assert_eq!(p.len(), Self::PARAMS_CNT);
+                assert_eq!(x.len(), Self::NEURONS_IN);
 
                 #eval_all_layers
 
                 x
             }
 
-            fn forward(&mut self, p: &[f64],
-                       x: SVector<f64,
-                                  { #first_layer::NEURONS_IN }>) ->
-                SVector<f64, { #last_layer::NEURONS_OUT }>
+            fn forward(&mut self, p: &[f64], x: DVector<f64>) ->
+                DVector<f64>
             {
                 assert_eq!(p.len(), Self::PARAMS_CNT);
+                assert_eq!(x.len(), Self::NEURONS_IN);
 
                 #forward_all_layers
 
@@ -220,13 +226,11 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 #backward_all_layers
             }
 
-            fn jacobian(&mut self,
-                        x: &SVector<f64,
-                                    { #first_layer::NEURONS_IN }>) ->
-                SMatrix<f64,
-                        { #last_layer::NEURONS_OUT },
-                        { Self::PARAMS_CNT }>
+            fn jacobian(&mut self, x: &DVector<f64>) ->
+                DMatrix<f64>
             {
+                assert_eq!(x.len(), Self::NEURONS_IN);
+
                 #compute_jacobian
 
                 jm
@@ -236,7 +240,7 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     let mut output =
         proc_macro2::TokenStream::from(item);
-    output.extend(constructor);
+    output.extend(network_trait_impl);
 
     proc_macro::TokenStream::from(output)
 }

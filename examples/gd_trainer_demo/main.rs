@@ -7,8 +7,8 @@ use libdt::trainer::Trainer;
 use libdt::macros::neural_network;
 
 use rand::Rng;
-use nalgebra::SVector;
-use nalgebra::SMatrix;
+use nalgebra::DVector;
+use nalgebra::DMatrix;
 
 mod data;
 
@@ -20,14 +20,16 @@ struct NiceNetwork {
 }
 
 fn main() {
-    let mut x_values: Vec<SVector<f64, 1>> =
+    let mut x_values: Vec<DVector<f64>> =
         Vec::with_capacity(data::XD_PAIRS.len());
-    let mut d_values: Vec<SVector<f64, 1>> =
+    let mut d_values: Vec<DVector<f64>> =
         Vec::with_capacity(data::XD_PAIRS.len());
 
     for xd_pair in data::XD_PAIRS.iter() {
-        x_values.push(xd_pair.0.clone());
-        d_values.push(xd_pair.1.clone());
+        x_values.push(DVector::from_column_slice(
+                        xd_pair.0.as_slice()));
+        d_values.push(DVector::from_column_slice(
+                        xd_pair.1.as_slice()));
     }
 
     let mut rng = rand::thread_rng();

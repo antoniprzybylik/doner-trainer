@@ -96,7 +96,7 @@ impl<N: Network> Trainer<N> for CGTrainer<N>
     fn grad(&mut self) -> RowDVector<f64> {
             let mut grad_sum: RowDVector<f64> =
                 Matrix::from_element_generic(
-                    dim::U1, dim::Dyn(N::NEURONS_OUT), 0f64);
+                    dim::U1, dim::Dyn(N::PARAMS_CNT), 0f64);
     
     
             for i in 0..self.x_values.len() {

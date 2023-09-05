@@ -153,7 +153,7 @@ impl<N: Network> Trainer<N> for LMTrainer<N> {
     {
             let mut grad_sum: RowDVector<f64> =
                 Matrix ::from_element_generic(
-                    dim::U1, dim::Dyn(N::NEURONS_OUT), 0f64);
+                    dim::U1, dim::Dyn(N::PARAMS_CNT), 0f64);
     
             for i in 0..self.x_values.len() {
                 let x = &self.x_values[i];
@@ -187,7 +187,7 @@ mod tests {
     use super::super::super::layer::LinLayer;
     use super::super::super::layer::SigmaLayer;
     use super::super::super::network::Network;
-    use super::super::super::macros::neural_network;
+    use libdt_macros::neural_network;
 
     use super::*;
 
@@ -200,12 +200,12 @@ mod tests {
 
     #[test]
     fn test_grad() {
-        let mut x_values: Vec<DVector<f64>> =
+        let x_values: Vec<DVector<f64>> =
             vec![DVector::from_column_slice(
                      nalgebra::vector![3.11f64].as_slice()),
                  DVector::from_column_slice(
                      nalgebra::vector![4.15f64].as_slice())];
-        let mut d_values: Vec<DVector<f64>> =
+        let d_values: Vec<DVector<f64>> =
             vec![DVector::from_column_slice(
                      nalgebra::vector![1.78215f64].as_slice()),
                  DVector::from_column_slice(

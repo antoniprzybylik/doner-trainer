@@ -1,23 +1,17 @@
-use nalgebra::SVector;
-use nalgebra::RowSVector;
+use nalgebra::DVector;
+use nalgebra::RowDVector;
 
 use super::network::Network;
 
 /// Neural network trainer.
-pub trait Trainer<N,
-              const PARAMS_CNT: usize,
-              const NEURONS_IN: usize,
-              const NEURONS_OUT: usize>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-{
+pub trait Trainer<N: Network> {
     fn new(nn: N, p: Vec<f64>,
-           x_values: Vec<SVector<f64, NEURONS_IN>>,
-           d_values: Vec<SVector<f64, NEURONS_OUT>>) -> Self;
+           x_values: Vec<DVector<f64>>,
+           d_values: Vec<DVector<f64>>) -> Self;
     fn make_step(&mut self);
 
     fn cost(&self) -> f64;
-    fn grad(&mut self) -> RowSVector<f64, PARAMS_CNT>;
+    fn grad(&mut self) -> RowDVector<f64>;
     fn grad_norm(&mut self) -> f64;
     fn params(&self) -> &[f64];
 }

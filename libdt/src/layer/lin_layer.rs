@@ -1,15 +1,20 @@
 use nalgebra as na;
 
-use na::Const;
+use na::DMatrix;
+use na::DVector;
+use na::Matrix;
+use na::Vector;
 use na::MatrixView;
-use na::SMatrix;
-use na::SVector;
+use na::base::dimension as dim;
+use na::base::VecStorage;
 
 use super::Layer;
 
 pub struct LinLayer<const NEURONS_IN: usize, const NEURONS_OUT: usize> {
-    pub signal: SVector<f64, NEURONS_OUT>,
-    chain_element: SMatrix<f64, NEURONS_OUT, NEURONS_IN>,
+    pub signal: Vector::<f64, dim::Dyn,
+                         VecStorage::<f64, dim::Dyn, dim::U1>>,
+    chain_element: Matrix::<f64, dim::Dyn, dim::Dyn,
+                            VecStorage::<f64, dim::Dyn, dim::Dyn>>,
 }
 
 impl<const NEURONS_IN: usize,
@@ -17,66 +22,80 @@ impl<const NEURONS_IN: usize,
 {
     pub fn new() -> Self {
         Self {
-            signal: na::zero(),
-            chain_element: na::zero(),
+            signal: Vector::from_element_generic(dim::Dyn(Self::NEURONS_OUT),
+                                                 dim::U1, 0f64),
+            chain_element: Matrix::from_element_generic(dim::Dyn(Self::NEURONS_OUT),
+                                                        dim::Dyn(Self::NEURONS_IN), 0f64),
         }
     }
 }
 
-impl<const NEURONS_IN: usize, const NEURONS_OUT: usize> Layer<NEURONS_IN, NEURONS_OUT>
+impl<const NEURONS_IN: usize, const NEURONS_OUT: usize> Layer
     for LinLayer<NEURONS_IN, NEURONS_OUT>
 {
     const PARAMS_CNT: usize = NEURONS_IN * NEURONS_OUT + NEURONS_OUT;
+    const NEURONS_IN: usize = NEURONS_IN;
+    const NEURONS_OUT: usize = NEURONS_OUT;
 
-    unsafe fn eval_unchecked(p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT> {
+    unsafe fn eval_unchecked(p: &[f64], x: DVector<f64>) -> DVector<f64> {
         let m = MatrixView::from_slice_generic_unchecked(
             p,
             0,
-            Const::<NEURONS_OUT>,
-            Const::<NEURONS_IN>,
+            dim::Dyn(NEURONS_OUT),
+            dim::Dyn(NEURONS_IN),
         );
         let v = MatrixView::from_slice_generic_unchecked(
             p,
             NEURONS_OUT * NEURONS_IN,
-            Const::<NEURONS_OUT>,
-            Const::<1>,
+            dim::Dyn(NEURONS_OUT),
+            dim::Dyn(1),
         );
 
         &(&m * x) + v
     }
 
-    fn eval(p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT> {
-        let m = MatrixView::from_slice_generic(p, Const::<NEURONS_OUT>, Const::<NEURONS_IN>);
+    fn eval(p: &[f64], x: DVector<f64>) -> DVector<f64> {
+        assert_eq!(p.len(), Self::PARAMS_CNT);
+        assert_eq!(x.len(), Self::NEURONS_IN);
+
+        let m = MatrixView::from_slice_generic(
+            p, dim::Dyn(NEURONS_OUT), dim::Dyn(NEURONS_IN));
         let v = MatrixView::from_slice_generic(
             &p[NEURONS_OUT * NEURONS_IN..],
-            Const::<NEURONS_OUT>,
-            Const::<1>,
+            dim::Dyn(NEURONS_OUT),
+            dim::Dyn(1),
         );
 
         &(&m * x) + v
     }
 
-    fn forward(&mut self, p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT> {
-        self.signal = Self::eval(p, x);
+    fn forward(&mut self, p: &[f64], x: DVector<f64>) -> DVector<f64> {
+        assert_eq!(p.len(), Self::PARAMS_CNT);
+        assert_eq!(x.len(), Self::NEURONS_IN);
 
+        self.signal = Self::eval(p, x);
         self.signal.clone()
     }
 
     fn backward(&mut self, p: &[f64]) {
-        self.chain_element =
-            MatrixView::from_slice_generic(p, Const::<NEURONS_OUT>, Const::<NEURONS_IN>).into();
+        self.chain_element = MatrixView::from_slice_generic(
+            p, dim::Dyn(NEURONS_OUT), dim::Dyn(NEURONS_IN)).into();
     }
 
-    fn chain_element(&self) -> &SMatrix<f64, NEURONS_OUT, NEURONS_IN> {
+    fn chain_element(&self) -> &DMatrix<f64> {
         &self.chain_element
     }
 
-    fn chain_end(&self, x: &SVector<f64, NEURONS_IN>) ->
-        SMatrix<f64, NEURONS_OUT, { Self::PARAMS_CNT }>
+    fn chain_end(&self, x: &DVector<f64>) -> DMatrix<f64>
     {
-        let mut matrix: SMatrix<f64, NEURONS_OUT, { Self::PARAMS_CNT }> = na::zero();
+        let mut matrix: DMatrix<f64> =
+            DMatrix::from_element_generic(
+            dim::Dyn(Self::NEURONS_OUT),
+            dim::Dyn(Self::PARAMS_CNT), 0f64);
+
         for i in 0..NEURONS_IN*NEURONS_OUT {
-            matrix[(i.div_euclid(NEURONS_IN), i)] = x[i.rem_euclid(NEURONS_IN)];
+            matrix[(i.div_euclid(NEURONS_IN), i)] =
+                x[i.rem_euclid(NEURONS_IN)];
         }
         for i in NEURONS_IN*NEURONS_OUT..Self::PARAMS_CNT {
             matrix[(i - NEURONS_IN*NEURONS_OUT, i)] = 1.;           
@@ -93,7 +112,8 @@ mod tests {
     #[test]
     fn test_eval() {
         let p: [f64; 6] = [1., 1., 1., 0., 7., 7.];
-        let x = na::vector![1., 2.];
+        let x = DVector::from_column_slice(
+            na::vector![1f64, 2f64].as_slice());
         
         let y = LinLayer::<2, 2>::eval(&p, x);
         assert_eq!(y, na::vector![10., 8.]);
@@ -102,7 +122,8 @@ mod tests {
     #[test]
     fn test_forward() {
         let p: [f64; 6] = [1., 1., 1., 0., 7., 7.];
-        let x = na::vector![1., 2.];
+        let x = DVector::from_column_slice(
+            na::vector![1f64, 2f64].as_slice());
         let mut layer = LinLayer::<2, 2>::new();
         
         let y = layer.forward(&p, x);
@@ -112,7 +133,8 @@ mod tests {
     #[test]
     fn test_backward() {
         let p: [f64; 6] = [1., 1., 1., 0., 7., 7.];
-        let x = na::vector![1., 2.];
+        let x = DVector::from_column_slice(
+            na::vector![1f64, 2f64].as_slice());
         let mut layer = LinLayer::<2, 2>::new();
         
         let _ = layer.forward(&p, x);
@@ -125,7 +147,8 @@ mod tests {
 
     #[test]
     fn test_chain_end() {
-        let x = na::vector![1f64, 2f64];
+        let x = DVector::from_column_slice(
+            na::vector![1f64, 2f64].as_slice());
         let layer = LinLayer::<2, 3>::new();
 
         assert_eq!(layer.chain_end(&x),

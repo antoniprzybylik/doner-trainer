@@ -1,52 +1,51 @@
-use nalgebra::SVector;
-use nalgebra::RowSVector;
+use nalgebra::DVector;
+use nalgebra::RowDVector;
 
 use super::Network;
 
-pub fn cost<const VEC_LEN: usize>(
-    y_values: &[SVector<f64, VEC_LEN>],
-    d_values: &[SVector<f64, VEC_LEN>],
+pub fn cost(
+    y_values: &[DVector<f64>],
+    d_values: &[DVector<f64>],
 ) -> f64 {
     let mut result: f64 = 0.;
     for (y, d) in y_values.iter().zip(d_values.iter()) {
+        assert_eq!(y.len(), d.len());
         result += ((y - d).transpose() * (y - d)).trace();
     }
 
     result
 }
 
-pub fn apply_step<const VEC_LEN: usize>
-    (p: &mut [f64], step: &RowSVector<f64, VEC_LEN>)
-{
-        for i in 0..p.len() {
-            p[i] += step[i];
-        }
+pub fn apply_step(p: &mut [f64], step: &RowDVector<f64>) {
+    assert_eq!(step.len(), p.len());
+
+    for i in 0..p.len() {
+        p[i] += step[i];
+    }
 }
 
-pub fn revert_step<const VEC_LEN: usize>
-    (p: &mut [f64], step: &RowSVector<f64, VEC_LEN>)
-{
-        for i in 0..p.len() {
-            p[i] -= step[i];
-        }
+pub fn revert_step(p: &mut [f64], step: &RowDVector<f64>) {
+    assert_eq!(step.len(), p.len());
+
+    for i in 0..p.len() {
+        p[i] -= step[i];
+    }
 }
 
-pub fn eval_untouched<N,
-                  const PARAMS_CNT: usize,
-                  const NEURONS_IN: usize,
-                  const NEURONS_OUT: usize>
-    (p: &mut [f64], step: &RowSVector<f64, PARAMS_CNT>,
-     x_values: &[SVector<f64, { NEURONS_IN }>],
-     d_values: &[SVector<f64, { NEURONS_OUT }>])
+pub fn eval_untouched<N: Network>
+    (p: &mut [f64], step: &RowDVector<f64>,
+     x_values: &[DVector<f64>],
+     d_values: &[DVector<f64>])
     -> f64
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
 {
+    assert_eq!(step.len(), N::PARAMS_CNT);
+
     apply_step(p, step);
 
-    let mut y_values: Vec<SVector<f64, { NEURONS_OUT }>> =
+    let mut y_values: Vec<DVector<f64>> =
         Vec::with_capacity(d_values.len());
     for x in x_values {
+        assert_eq!(x.len(), N::NEURONS_IN);
         let x = x.clone();
         y_values.push(N::eval(&p, x));
     }
@@ -61,24 +60,20 @@ const MAX_E: f64 = P0;
 const PHI2: f64 = 2.618033988749894848207f64;
 const RPHI: f64 = 0.618033988749894848207f64;
 
-pub fn choose_step<N,
-                   const PARAMS_CNT: usize,
-                   const NEURONS_IN: usize,
-                   const NEURONS_OUT: usize>
+pub fn choose_step<N: Network>
     (p: &mut [f64],
-     x_values: &[SVector<f64, { NEURONS_IN }>],
-     d_values: &[SVector<f64, { NEURONS_OUT }>],
-     direction: RowSVector<f64, PARAMS_CNT>)
-    -> RowSVector<f64, PARAMS_CNT>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
+     x_values: &[DVector<f64>],
+     d_values: &[DVector<f64>],
+     direction: RowDVector<f64>)
+    -> RowDVector<f64>
 {
     let (mut x1, mut x2, mut x3, mut x4): (f64, f64, f64, f64);
     let (fx1, mut fx3, mut fx4): (f64, f64, f64);
 
-    let mut y_values: Vec<SVector<f64, { NEURONS_OUT }>> =
+    let mut y_values: Vec<DVector<f64>> =
         Vec::with_capacity(d_values.len());
     for x in x_values {
+        assert_eq!(x.len(), N::NEURONS_IN);
         let x = x.clone();
         y_values.push(N::eval(&p, x));
     }
@@ -87,21 +82,18 @@ where
 
     x1 = 0.;
     x2 = P0;
-    while eval_untouched::<N, PARAMS_CNT,
-                           NEURONS_IN, NEURONS_OUT>
-        (p, &(x2*direction), x_values, d_values) <= fx1
+    while eval_untouched::<N>
+        (p, &(x2*direction.clone()), x_values, d_values) <= fx1
     {
         x2 = x1 + (x2 - x1)*PHI2;
     }
 
 	x3 = x2 - (x2 - x1)*RPHI;
 	x4 = x1 + (x2 - x1)*RPHI;
-	fx3 = eval_untouched::<N, PARAMS_CNT,
-                           NEURONS_IN, NEURONS_OUT>
-        (p, &(x3*direction), x_values, d_values);
-	fx4 = eval_untouched::<N, PARAMS_CNT,
-                           NEURONS_IN, NEURONS_OUT>
-        (p, &(x4*direction), x_values, d_values);
+	fx3 = eval_untouched::<N>
+        (p, &(x3*direction.clone()), x_values, d_values);
+	fx4 = eval_untouched::<N>
+        (p, &(x4*direction.clone()), x_values, d_values);
 	while (x1 - x2).abs() > MAX_E {
 		if fx3 < fx4 {
 			x2 = x4;
@@ -109,18 +101,16 @@ where
 			fx4 = fx3;
 			x3 = x2 - (x2 - x1)*RPHI;
 			x4 = x1 + (x2 - x1)*RPHI;
-			fx3 = eval_untouched::<N, PARAMS_CNT,
-                                   NEURONS_IN, NEURONS_OUT>
-                (p, &(x3*direction), x_values, d_values);
+			fx3 = eval_untouched::<N>
+                (p, &(x3*direction.clone()), x_values, d_values);
 		} else {
 			x1 = x3;
 
 			fx3 = fx4;
 			x3 = x2 - (x2 - x1)*RPHI;
 			x4 = x1 + (x2 - x1)*RPHI;
-			fx4 = eval_untouched::<N, PARAMS_CNT,
-                                   NEURONS_IN, NEURONS_OUT>
-                (p, &(x4*direction), x_values, d_values);
+			fx4 = eval_untouched::<N>
+                (p, &(x4*direction.clone()), x_values, d_values);
 		}
 	}
 

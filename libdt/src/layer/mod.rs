@@ -1,20 +1,20 @@
 use nalgebra as na;
 
-use na::SMatrix;
-use na::SVector;
+use na::DMatrix;
+use na::DVector;
 
 /// Neural network layer.
-pub trait Layer<const NEURONS_IN: usize, const NEURONS_OUT: usize> {
+pub trait Layer {
     const PARAMS_CNT: usize;
-    const NEURONS_IN: usize = NEURONS_IN;
-    const NEURONS_OUT: usize = NEURONS_OUT;
+    const NEURONS_IN: usize;
+    const NEURONS_OUT: usize;
 
-    unsafe fn eval_unchecked(p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT>;
-    fn eval(p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT>;
-    fn forward(&mut self, p: &[f64], x: SVector<f64, NEURONS_IN>) -> SVector<f64, NEURONS_OUT>;
+    unsafe fn eval_unchecked(p: &[f64], x: DVector<f64>) -> DVector<f64>;
+    fn eval(p: &[f64], x: DVector<f64>) -> DVector<f64>;
+    fn forward(&mut self, p: &[f64], x: DVector<f64>) -> DVector<f64>;
     fn backward(&mut self, p: &[f64]);
-    fn chain_element(&self) -> &SMatrix<f64, NEURONS_OUT, NEURONS_IN>;
-    fn chain_end(&self, x: &SVector<f64, NEURONS_IN>) -> SMatrix<f64, NEURONS_OUT, { Self::PARAMS_CNT }>;
+    fn chain_element(&self) -> &DMatrix<f64>;
+    fn chain_end(&self, x: &DVector<f64>) -> DMatrix<f64>;
 }
 
 mod lin_layer;

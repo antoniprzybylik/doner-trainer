@@ -1,6 +1,8 @@
-use nalgebra::SVector;
-use nalgebra::RowSVector;
-use nalgebra::SMatrix;
+use nalgebra::DVector;
+use nalgebra::RowDVector;
+use nalgebra::DMatrix;
+use nalgebra::Matrix;
+use nalgebra::base::dimension as dim;
 
 use super::super::network::Network;
 use super::super::trainer::Trainer;
@@ -10,59 +12,43 @@ use super::common::apply_step;
 use super::common::eval_untouched;
 
 /// Trainer using Levenberg-Marquardt Method.
-pub struct LMTrainer<N,
-                     const PARAMS_CNT: usize,
-                     const NEURONS_IN: usize,
-                     const NEURONS_OUT: usize>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
+pub struct LMTrainer<N: Network>
 {
     p: Vec<f64>,
-    x_values: Vec<SVector<f64, NEURONS_IN>>,
-    d_values: Vec<SVector<f64, NEURONS_OUT>>,
+    x_values: Vec<DVector<f64>>,
+    d_values: Vec<DVector<f64>>,
     nn: N,
 
     lambda: f64,
 }
 
-fn net_eval<N,
-    const PARAMS_CNT: usize,
-    const NEURONS_IN: usize,
-    const NEURONS_OUT: usize>(p: &[f64],
-    x_values: &[SVector<f64, NEURONS_IN>])
-    -> Vec<SVector<f64, NEURONS_OUT>>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
+fn net_eval<N: Network>(p: &[f64], x_values: &[DVector<f64>])
+    -> Vec<DVector<f64>>
 {
-    let mut y_values: Vec<SVector<f64, NEURONS_OUT>> =
-        Vec::new();
-
+    let mut y_values: Vec<DVector<f64>> = Vec::new();
     for x in x_values.into_iter() {
+        assert_eq!(x.len(), N::NEURONS_IN);
         y_values.push(N::eval(&p, x.clone()));
     }
 
     y_values
 }
 
-impl<N, const PARAMS_CNT: usize,
-     const NEURONS_IN: usize,
-     const NEURONS_OUT: usize>
-    LMTrainer<N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-{
+impl<N: Network> LMTrainer<N> {
     fn choose_lm_step(
-         &mut self,
-         h: SMatrix<f64, PARAMS_CNT, PARAMS_CNT>,
-         g: RowSVector<f64, PARAMS_CNT>)
-        -> RowSVector<f64, PARAMS_CNT>
-    where
-        N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>,
+         &mut self, h: DMatrix<f64>, g: RowDVector<f64>)
+        -> RowDVector<f64>
     {
-        let current_cost = eval_untouched::<
-            N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>(
-            &mut self.p, &nalgebra::zero(),
-            self.x_values.as_slice(), self.d_values.as_slice());
+        assert_eq!(h.nrows(), N::PARAMS_CNT);
+        assert_eq!(h.ncols(), N::PARAMS_CNT);
+        assert_eq!(g.len(), N::PARAMS_CNT);
+
+        let current_cost = eval_untouched::<N>(
+            &mut self.p,
+            &Matrix::from_element_generic(
+                dim::U1, dim::Dyn(N::PARAMS_CNT), 0f64),
+            self.x_values.as_slice(),
+            self.d_values.as_slice());
     
         loop {
             let mut m = h.clone();
@@ -72,21 +58,19 @@ where
             let m = m.try_inverse();
             let step = match m {
                 Some(m) => -(&m * g.transpose()).transpose(),
-                None => return super::common::choose_step::<N,
-                    PARAMS_CNT, NEURONS_IN, NEURONS_OUT>(
+                None => return super::common::choose_step::<N>(
                         &mut self.p, self.x_values.as_slice(),
                         self.d_values.as_slice(), -g),
             };
             
-            let rho = (current_cost - eval_untouched::<
-                N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-                (&mut self.p, &step,
-                 self.x_values.as_slice(),
-                 self.d_values.as_slice())) /
-                (step * (self.lambda*
-                         SMatrix::from_diagonal(&h.diagonal())*
-                         step.transpose() -
-                         g.transpose())).norm();
+            let rho = (current_cost - eval_untouched::<N>(
+                &mut self.p, &step,
+                self.x_values.as_slice(),
+                self.d_values.as_slice())) /
+                (step.clone() *
+                 (self.lambda*
+                  DMatrix::from_diagonal(&h.diagonal())*
+                  step.transpose() - g.transpose())).norm();
 
             if rho > 0.1f64 {
                 let new_lambda = self.lambda / 9f64;
@@ -104,13 +88,16 @@ where
     }
 
     fn grad_and_jacobian(&mut self) ->
-        (RowSVector<f64, PARAMS_CNT>,
-         SMatrix<f64, NEURONS_OUT, PARAMS_CNT>)
+        (RowDVector<f64>, DMatrix<f64>)
     {
-            let mut jm_sum: SMatrix<f64, NEURONS_OUT, PARAMS_CNT> =
-                nalgebra::zero();
-            let mut g_sum: RowSVector<f64, PARAMS_CNT> =
-                nalgebra::zero();
+            let mut jm_sum: DMatrix<f64> =
+                Matrix::from_element_generic(
+                    dim::Dyn(N::NEURONS_OUT),
+                    dim::Dyn(N::PARAMS_CNT), 0f64);
+            let mut g_sum: RowDVector<f64> =
+                Matrix::from_element_generic(
+                    dim::U1,
+                    dim::Dyn(N::PARAMS_CNT), 0f64);
     
             for i in 0..self.x_values.len() {
                 let x = &self.x_values[i];
@@ -120,7 +107,7 @@ where
                 self.nn.backward(&self.p);
                 let jm = self.nn.jacobian(x);
 
-                g_sum += (y - d).transpose() * jm;
+                g_sum += (y - d).transpose() * jm.clone();
                 jm_sum += jm;
             }
             
@@ -128,21 +115,13 @@ where
     }
 }
 
-impl<N, const PARAMS_CNT: usize,
-     const NEURONS_IN: usize,
-     const NEURONS_OUT: usize> 
-     Trainer<N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-    for LMTrainer<N, PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-where
-    N: Network<PARAMS_CNT, NEURONS_IN, NEURONS_OUT>
-{
+impl<N: Network> Trainer<N> for LMTrainer<N> {
     fn new(nn: N, p: Vec<f64>,
-           x_values: Vec<SVector<f64, NEURONS_IN>>,
-           d_values: Vec<SVector<f64, NEURONS_OUT>>) -> Self
+           x_values: Vec<DVector<f64>>,
+           d_values: Vec<DVector<f64>>) -> Self
     {
-        assert_eq!(p.len(), PARAMS_CNT);
-        assert_eq!(x_values.len(),
-                   d_values.len());
+        assert_eq!(p.len(), N::PARAMS_CNT);
+        assert_eq!(x_values.len(), d_values.len());
 
         LMTrainer {
             p,
@@ -163,19 +142,18 @@ where
     }
 
     fn cost(&self) -> f64 {
-        let y_values = net_eval::<N, PARAMS_CNT,
-                                  NEURONS_IN, NEURONS_OUT>(
-                                self.p.as_slice(),
-                                self.x_values.as_slice());
+        let y_values = net_eval::<N>(
+            self.p.as_slice(), self.x_values.as_slice());
         let y_values = y_values.as_slice();
 
         cost(y_values, self.d_values.as_slice())
     }
 
-    fn grad(&mut self) -> RowSVector<f64, PARAMS_CNT>
+    fn grad(&mut self) -> RowDVector<f64>
     {
-            let mut grad_sum: RowSVector<f64, PARAMS_CNT> =
-                nalgebra::zero();
+            let mut grad_sum: RowDVector<f64> =
+                Matrix ::from_element_generic(
+                    dim::U1, dim::Dyn(N::NEURONS_OUT), 0f64);
     
             for i in 0..self.x_values.len() {
                 let x = &self.x_values[i];
@@ -193,9 +171,7 @@ where
     }
 
     fn grad_norm(&mut self) -> f64 {
-        let direction = self.grad();
-
-        direction.norm()
+        self.grad().norm()
     }
 
     fn params(&self) -> &[f64] {
@@ -224,12 +200,16 @@ mod tests {
 
     #[test]
     fn test_grad() {
-        let mut x_values: Vec<SVector<f64, 1>> =
-            vec![nalgebra::vector![3.11f64],
-                 nalgebra::vector![4.15f64]];
-        let mut d_values: Vec<SVector<f64, 1>> =
-            vec![nalgebra::vector![1.78215f64],
-                 nalgebra::vector![8.18725f64]];
+        let mut x_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![3.11f64].as_slice()),
+                 DVector::from_column_slice(
+                     nalgebra::vector![4.15f64].as_slice())];
+        let mut d_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![1.78215f64].as_slice()),
+                 DVector::from_column_slice(
+                     nalgebra::vector![8.18725f64].as_slice())];
     
         let mut rng = rand::thread_rng();
         let mut p: Vec<f64> = Vec::new();

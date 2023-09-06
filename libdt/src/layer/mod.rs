@@ -28,3 +28,6 @@ pub use gelu_layer::*;
 
 mod softmax_layer;
 pub use softmax_layer::*;
+
+mod sum_layer;
+pub use sum_layer::*;

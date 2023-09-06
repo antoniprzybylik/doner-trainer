@@ -186,20 +186,21 @@ mod tests {
     use super::super::super::layer::Layer;
     use super::super::super::layer::LinLayer;
     use super::super::super::layer::SigmaLayer;
+    use super::super::super::layer::SumLayer;
     use super::super::super::network::Network;
     use libdt_macros::neural_network;
 
     use super::*;
 
     #[neural_network]
-    struct NiceNetwork {
+    struct Test1Network {
         layers: (LinLayer::<1, 10>,
                  SigmaLayer::<10>,
                  LinLayer::<10, 1>)
     }
 
     #[test]
-    fn test_grad() {
+    fn test_grad_1() {
         let x_values: Vec<DVector<f64>> =
             vec![DVector::from_column_slice(
                      nalgebra::vector![3.11f64].as_slice()),
@@ -213,11 +214,11 @@ mod tests {
     
         let mut rng = rand::thread_rng();
         let mut p: Vec<f64> = Vec::new();
-        for _ in 0..NiceNetwork::PARAMS_CNT {
+        for _ in 0..Test1Network::PARAMS_CNT {
             p.push(rng.gen_range(0.0..1.0));
         }
     
-        let nn = NiceNetwork::new();
+        let nn = Test1Network::new();
         let mut trainer = LMTrainer::new(
             nn, p, x_values, d_values);
 
@@ -228,5 +229,31 @@ mod tests {
         for i in 0..g1.len() {
             assert_float_eq!(g1[i], g2[i], abs <= 0.000_000_000_1);
         }
+    }
+
+    #[neural_network]
+    struct Test2Network {
+        layers: (SumLayer::<1, 1>,)
+    }
+
+    #[test]
+    fn test_grad_2() {
+        let x_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![3f64].as_slice())];
+        let d_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![1f64].as_slice())];
+    
+        let mut rng = rand::thread_rng();
+        let mut p: Vec<f64> = vec![2f64];
+    
+        let nn = Test2Network::new();
+        let mut trainer = LMTrainer::new(
+            nn, p, x_values, d_values);
+
+        let g = trainer.grad();
+
+        assert_eq!(g, nalgebra::vector![15f64]);
     }
 }

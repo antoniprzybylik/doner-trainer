@@ -245,8 +245,7 @@ mod tests {
             vec![DVector::from_column_slice(
                      nalgebra::vector![1f64].as_slice())];
     
-        let mut rng = rand::thread_rng();
-        let mut p: Vec<f64> = vec![2f64];
+        let p: Vec<f64> = vec![2f64];
     
         let nn = Test2Network::new();
         let mut trainer = LMTrainer::new(
@@ -255,5 +254,36 @@ mod tests {
         let g = trainer.grad();
 
         assert_eq!(g, nalgebra::vector![30f64]);
+    }
+
+    #[neural_network]
+    struct Test3Network {
+        layers: (SumLayer::<2, 2>,)
+    }
+
+    #[test]
+    fn test_grad_3() {
+        let x_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![3f64, -1.5f64].as_slice()),
+                 DVector::from_column_slice(
+                     nalgebra::vector![0f64, 0f64].as_slice())];
+        let d_values: Vec<DVector<f64>> =
+            vec![DVector::from_column_slice(
+                     nalgebra::vector![1f64, 2f64].as_slice()),
+                 DVector::from_column_slice(
+                     nalgebra::vector![2f64, 0f64].as_slice())];
+    
+        let p: Vec<f64> = vec![2f64, 2f64, 1f64, 0f64];
+    
+        let nn = Test3Network::new();
+        let mut trainer = LMTrainer::new(
+            nn, p, x_values, d_values);
+
+        let g = trainer.grad();
+
+        assert_eq!(g.transpose(),
+                   nalgebra::vector![21f64, -10.5f64,
+                                     24f64, -12f64]);
     }
 }

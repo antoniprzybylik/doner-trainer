@@ -107,7 +107,7 @@ impl<N: Network> LMTrainer<N> {
                 self.nn.backward(&self.p);
                 let jm = self.nn.jacobian(x);
 
-                g_sum += (y - d).transpose() * jm.clone();
+                g_sum += 2f64 * (y - d).transpose() * jm.clone();
                 jm_sum += jm;
             }
             
@@ -162,7 +162,7 @@ impl<N: Network> Trainer<N> for LMTrainer<N> {
                 let y = self.nn.forward(&self.p, x.clone());
                 self.nn.backward(&self.p);
                 let jm = self.nn.jacobian(x);
-                let g = (y - d).transpose() * jm;
+                let g = 2f64 * (y - d).transpose() * jm;
     
                 grad_sum += g;
             }
@@ -254,6 +254,6 @@ mod tests {
 
         let g = trainer.grad();
 
-        assert_eq!(g, nalgebra::vector![15f64]);
+        assert_eq!(g, nalgebra::vector![30f64]);
     }
 }

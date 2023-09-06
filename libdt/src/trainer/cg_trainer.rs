@@ -106,7 +106,7 @@ impl<N: Network> Trainer<N> for CGTrainer<N>
                 let y = self.nn.forward(&self.p, x.clone());
                 self.nn.backward(&self.p);
                 let jm = self.nn.jacobian(x);
-                let g = (y - d).transpose() * jm;
+                let g = 2f64 * (y - d).transpose() * jm;
     
                 grad_sum += g;
             }

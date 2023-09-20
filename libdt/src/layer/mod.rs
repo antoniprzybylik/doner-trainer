@@ -15,6 +15,7 @@ pub trait Layer {
     fn backward(&mut self, p: &[f64]);
     fn chain_element(&self) -> &DMatrix<f64>;
     fn chain_end(&self, x: &DVector<f64>) -> DMatrix<f64>;
+    fn default_initial_params() -> Vec<f64>;
 }
 
 mod lin_layer;

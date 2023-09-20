@@ -103,6 +103,18 @@ impl<const NEURONS_IN: usize, const NEURONS_OUT: usize> Layer
 
         matrix
     }
+
+    fn default_initial_params() -> Vec<f64> {
+        use rand::Rng;
+
+        let mut rng = rand::thread_rng();
+        let mut p: Vec<f64> = Vec::new();
+        for _ in 0..Self::PARAMS_CNT {
+            p.push(rng.gen_range(-1.0..1.0));
+        }
+
+        p
+    }
 }
 
 #[cfg(test)]

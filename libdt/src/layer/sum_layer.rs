@@ -89,6 +89,15 @@ impl<const NEURONS_IN: usize, const NEURONS_OUT: usize> Layer
 
         matrix
     }
+
+    fn default_initial_params() -> Vec<f64> {
+        let mut p: Vec<f64> = Vec::new();
+        for _ in 0..Self::PARAMS_CNT {
+            p.push(1f64);
+        }
+
+        p
+    }
 }
 
 #[cfg(test)]

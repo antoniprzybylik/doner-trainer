@@ -15,4 +15,5 @@ pub trait Network {
     fn backward(&mut self, p: &[f64]);
     fn jacobian(&mut self, x: &DVector<f64>) ->
         DMatrix<f64>;
+    fn default_initial_params() -> Vec<f64>;
 }

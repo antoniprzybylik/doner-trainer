@@ -158,6 +158,7 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
         };
         let mut offset: usize = Self::PARAMS_CNT;
     });
+
     for i in (1..layer_idents.len()).rev() {
         let layer_ident = &layer_idents[i];
         let idx: syn::Index = i.into();
@@ -180,6 +181,15 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
             jm.set_column(i, &jf.index((.., i)));
         }
     });
+
+    let mut extend_by_initial_params = proc_macro2::TokenStream::new();
+    for i in 0..layer_idents.len() {
+        let layer_ident = &layer_idents[i];
+
+        extend_by_initial_params.extend(quote!{
+            p.append(&mut #layer_ident::default_initial_params());
+        });
+    }
 
     let network_trait_impl = quote! {
         impl Network for #ident {
@@ -234,6 +244,14 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 #compute_jacobian
 
                 jm
+            }
+
+            fn default_initial_params() -> Vec<f64> {
+                let mut p: Vec<f64> = Vec::new();
+
+                #extend_by_initial_params
+
+                p
             }
         }
     };

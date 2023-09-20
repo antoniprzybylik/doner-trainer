@@ -82,6 +82,10 @@ impl<const SIZE: usize> Layer for SigmaLayer<SIZE> {
             dim::Dyn(Self::NEURONS_OUT),
             dim::Dyn(Self::PARAMS_CNT), 0f64)
     }
+
+    fn default_initial_params() -> Vec<f64> {
+        Vec::new()
+    }
 }
 
 #[cfg(test)]

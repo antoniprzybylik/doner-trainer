@@ -247,7 +247,8 @@ pub fn neural_network(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
 
             fn default_initial_params() -> Vec<f64> {
-                let mut p: Vec<f64> = Vec::new();
+                let mut p: Vec<f64> =
+                    Vec::with_capacity(Self::PARAMS_CNT);
 
                 #extend_by_initial_params
 

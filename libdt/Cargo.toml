@@ -12,12 +12,12 @@ description = "Library for training neural networks."
 macros = ["libdt-macros"]
 
 [dependencies]
-libdt-macros = {version = "2.0.1", path = "../libdt-macros", optional = true }
+libdt-macros = {version = "2.0.2", path = "../libdt-macros", optional = true }
 
 rand = "0.8.5"
 nalgebra = "0.32.3"
 
 [dev-dependencies]
-libdt-macros = {version = "2.0.1", path = "../libdt-macros"}
+libdt-macros = {version = "2.0.2", path = "../libdt-macros"}
 float_eq = "1.0.1"
 rand = "0.8.5"

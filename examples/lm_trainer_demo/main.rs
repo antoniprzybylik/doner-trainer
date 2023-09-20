@@ -6,7 +6,6 @@ use libdt::trainer::LMTrainer;
 use libdt::trainer::Trainer;
 use libdt::macros::neural_network;
 
-use rand::Rng;
 use nalgebra::DVector;
 use nalgebra::DMatrix;
 
@@ -32,11 +31,7 @@ fn main() {
                         xd_pair.1.clone().as_slice()));
     }
 
-    let mut rng = rand::thread_rng();
-    let mut p: Vec<f64> = Vec::new();
-    for _ in 0..NiceNetwork::PARAMS_CNT {
-        p.push(rng.gen_range(0.0..1.0));
-    }
+    let p: Vec<f64> = NiceNetwork::default_initial_params();
 
     let nn = NiceNetwork::new();
     let mut trainer = LMTrainer::new(

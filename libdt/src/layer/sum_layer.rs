@@ -82,9 +82,10 @@ impl<const NEURONS_IN: usize, const NEURONS_OUT: usize> Layer
             dim::Dyn(Self::NEURONS_OUT),
             dim::Dyn(Self::PARAMS_CNT), 0f64);
 
-        for i in 0..Self::PARAMS_CNT {
-            matrix[(i.div_euclid(NEURONS_IN), i)] =
-                x[i.rem_euclid(NEURONS_IN)];
+        for i in 0..NEURONS_IN {
+            for j in 0..NEURONS_OUT {
+                matrix[(j, i*NEURONS_OUT+j)] = x[i];
+            }
         }
 
         matrix
@@ -148,8 +149,8 @@ mod tests {
         let layer = SumLayer::<2, 3>::new();
 
         assert_eq!(layer.chain_end(&x),
-                   na::matrix![1., 2., 0., 0., 0., 0.;
-                               0., 0., 1., 2., 0., 0.;
-                               0., 0., 0., 0., 1., 2.]);
+                   na::matrix![1., 0., 0., 2., 0., 0.;
+                               0., 1., 0., 0., 2., 0.;
+                               0., 0., 1., 0., 0., 2.]);
     }
 }

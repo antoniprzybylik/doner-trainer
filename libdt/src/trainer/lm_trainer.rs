@@ -283,7 +283,7 @@ mod tests {
         let g = trainer.grad();
 
         assert_eq!(g.transpose(),
-                   nalgebra::vector![21f64, -10.5f64,
-                                     24f64, -12f64]);
+                   nalgebra::vector![21f64, 24f64,
+                                     -10.5f64, -12f64]);
     }
 }
